@@ -1,6 +1,6 @@
 {
-  "Name": "InvalidTemplate",
-  "Description": "Invalid Template",
+  "Name": "Invalid template",
+  "Description": "Invalid template",
   "Version": "0.1.0",
   "Parameters": [
     {
@@ -8,6 +8,12 @@
       "Type": "String",
       "TypeHint": "AzureRegionName",
       "Description": "Name of Azure region."
+    },
+    {
+      "Name": "CloudService",
+      "Type": "String",
+      "TypeHint": "AzureCloudServiceName",
+      "Description": "Name of the Azure Cloud Service."
     },
     {
       "Name": "DiskStore",

@@ -1,0 +1,310 @@
+{
+  "Name": "InvalidTemplate",
+  "Description": "Invalid Template",
+  "Version": "0.1.0",
+  "Parameters": [
+    {
+      "Name": "Region",
+      "Type": "String",
+      "TypeHint": "AzureRegionName",
+      "Description": "Name of Azure region."
+    },
+    {
+      "Name": "CloudService",
+      "Type": "String",
+      "TypeHint": "AzureCloudServiceName",
+      "Description": "Name of the Azure Cloud Service."
+    },
+    {
+      "Name": "DiskStore",
+      "Type": "String",
+      "TypeHint": "AzureStorageName",
+      "Description": "Name of Azure disk storage account."
+    },
+    {
+      "Name": "VMSize",
+      "Type": "String",
+      "TypeHint": "AzureRoleSize",
+      "Description": "Size of the server VMs.",
+      "Default": "Small"
+    },
+    {
+      "Name": "AdminName",
+      "Type": "String",
+      "TypeHint": "username",
+      "Description": "Name of local administrator account.",
+      "Minimum": 1.0,
+      "Maximum": 64.0
+    },
+    {
+      "Name": "AdminPassword",
+      "Type": "String",
+      "TypeHint": "password",
+      "Description": "Password of local administrator account.",
+      "MaskValue": true,
+      "Minimum": 8.0,
+      "Maximum": 127.0
+    },
+    {
+      "Name": "ServerNamePrefix",
+      "Type": "String",
+      "Description": "Name prefix for web servers.",
+      "Default": "arr",
+      "AllowedRegex": "^[a-zA-Z][a-zA-Z0-9-]{1,13}$",
+      "AllowedDescription": "Must contain 3 to 14 letters, numbers, and hyphens. Must start with a letter."
+    },
+    {
+      "Name": "NumberOfWebServers",
+      "Type": "Number",
+      "TypeHint": "integer",
+      "Description": "Number of web servers.",
+      "Default": "2",
+      "AllowedRegex": "^\\d+$",
+      "AllowedDescription": "Must enter a positive integer between 2 and 100.",
+      "Minimum": 2.0,
+      "Maximum": 100.0
+    }
+  ],
+  "Network": {
+    "DnsServers": [],
+    "LocalSites": [],
+    "VirtualSites": []
+  },
+  "AffinityGroup": {
+    "Name": "{{AffinityGroup}}",
+    "Region": "{{Region}}"
+  },
+  "StorageAccounts": [
+    {
+      "Name": "{{DiskStore}}",
+      "AffinityGroup": "{{AffinityGroup}}",
+      "Region": "{{Region}}",
+      "DisableGeoReplication": false
+    }
+  ],
+  "CloudServices": [
+    {
+      "Name": "{{CloudService}}",
+      "AffinityGroup": "{{AffinityGroup}}",
+      "Region": "{{Region}}",
+      "Description": "Brewmaster ARR Cloud Service",
+      "Deployment": {
+        "VirtualMachines": [
+          {
+            "Name": "{{ServerNamePrefix}}1",
+            "RoleSize": "{{VmSize}}",
+            "AvailabilitySet": "arr-avset",
+            "OsVirtualDisk": {
+              "OsType": "Windows",
+              "OsImageName": "a699494373c04fc0bc8f2bb1389d6106__Windows-Server-2012-R2-*"
+            },
+            "WindowsConfigSet": {
+              "LocalAdminCredentialId": "vmadmin",
+              "EnableAutomaticUpdates": false,
+              "ChangePasswordAtLogon": false,
+              "DisableRdp": false
+            },
+            "ConfigSets": [
+              "ArrServer"
+            ]
+          }
+{% for i in (2..NumberOfWebServers) -%}
+		  ,{
+            "Name": "{{ServerNamePrefix}}{{i}}",
+            "RoleSize": "{{VmSize}}",
+            "AvailabilitySet": "arr-avset",
+            "OsVirtualDisk": {
+              "OsType": "Windows",
+              "OsImageName": "a699494373c04fc0bc8f2bb1389d6106__Windows-Server-2012-R2-*"
+            },
+            "WindowsConfigSet": {
+              "LocalAdminCredentialId": "vmadmin",
+              "EnableAutomaticUpdates": false,
+              "ChangePasswordAtLogon": false,
+              "DisableRdp": false
+            },
+            "ConfigSets": [
+              "ArrServer"
+            ]
+          }
+{% endfor -%}
+        ],
+        "DiskStorageAccount": "{{DiskStore}}",
+        "RemoveUnreferencedVms": false
+      }
+    }
+  ],
+  "DeploymentGroups": [],
+  "Credentials": [
+    {
+      "Name": "vmadmin",
+      "UserName": "{{AdminName}}",
+      "Password": "{{AdminPassword}}"
+    }
+  ],
+  "ConfigSets": [
+    {
+      "Name": "ArrServer",
+      "Description": "ARR Server",
+      "Endpoints": [
+        {
+          "Name": "HTTP",
+          "LocalPort": 80,
+          "Protocol": "tcp",
+          "Port": 80,
+          "EnableDirectServerReturn": false,
+          "Rules": [],
+          "LoadBalancerProbe": {
+            "Name": "http",
+            "Protocol": "Http",
+            "Path": "/",
+            "IntervalInSeconds": 15,
+            "TimeoutInSeconds": 31
+          }
+        },
+        {
+          "Name": "HTTPS",
+          "LocalPort": 443,
+          "Protocol": "tcp",
+          "Port": 443,
+          "EnableDirectServerReturn": false,
+          "Rules": [],
+          "LoadBalancerProbe": {
+            "Name": "https",
+            "Protocol": "Tcp",
+            "IntervalInSeconds": 15,
+            "TimeoutInSeconds": 31
+          }
+        }
+      ],
+      "ConfigurationIds": [
+        "InstallArr"
+      ]
+    }
+  ],
+  "Configurations": [
+    {
+      "Name": "InstallArr",
+      "Resources": [
+        {
+          "Type": "Package",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "InstallWebPI",
+          "Args": {
+            "Credential": "vmadmin",
+            "Name": "Microsoft Web Platform Installer 4.6",
+            "ProductId": "16C7D2AD-20CA-491E-80BC-8607A9AACED9",
+            "Path": "http://download.microsoft.com/download/7/0/4/704CEB4C-9F42-4962-A2B0-5C84B0682C7A/WebPlatformInstaller_amd64_en-US.msi",
+            "LogPath": "%BrewmasterDir%\\Logs\\WebPlatformInstaller_amd64_en-US.log",
+            "Ensure": "Present"
+          },
+          "Nodes": [],
+          "Requires": [],
+          "Description": null
+        },
+        {
+          "Type": "WindowsFeature",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "InstallASPNET45",
+          "Args": {
+            "Name": "NET-Framework-45-ASPNET",
+            "IncludeAllSubFeature": "true",
+            "LogPath": "%BrewmasterDir%\\Logs\\Install-ASPNET45.log",
+            "Ensure": "Present"
+          },
+          "Nodes": [],
+          "Requires": [],
+          "Description": null
+        },
+        {
+          "Type": "WindowsFeature",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "InstallIIS",
+          "Args": {
+            "Name": "Web-Server",
+            "IncludeAllSubFeature": "true",
+            "LogPath": "%BrewmasterDir%\\Logs\\Install-IIS.log",
+            "Ensure": "Present"
+          },
+          "Nodes": [],
+          "Requires": [],
+          "Description": null
+        },
+        {
+          "Type": "Registry",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "EnableRemoteManagement",
+          "Args": {
+            "Key": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\WebManagement\\Server",
+            "ValueName": "EnableRemoteManagement",
+            "ValueData": "1",
+            "ValueType": "Dword",
+            "Force": "true",
+            "Ensure": "Present"
+          },
+          "Nodes": [],
+          "Requires": [
+            "[WindowsFeature]InstallIIS",
+            "[WindowsFeature]InstallASPNET45"
+          ],
+          "Description": null
+        },
+        {
+          "Type": "Service",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "StartWebManagementService",
+          "Args": {
+            "Name": "wmsvc",
+            "StartupType": "Automatic",
+            "State": "Running"
+          },
+          "Nodes": [],
+          "Requires": [
+            "[Registry]EnableRemoteManagement"
+          ],
+          "Description": null
+        },
+        {
+          "Credential": "vmadmin",
+          "GetScript": "return @{ Installed = Test-Path -LiteralPath \"$env:ProgramFiles\\IIS\\Application Request Routing\\requestRouter.dll\" -PathType Leaf }",
+          "SetScript": "$webpicmdexe = \"$env:ProgramFiles\\Microsoft\\Web Platform Installer\\WebPICmd.exe\"\r\n$webpicmdargs = @(\"/Install\", \"/Products:ARR\", \"/AcceptEula\", \"/SuppressReboot\", \"/Log:$env:BrewmasterDir\\Logs\\ARR-Install.log\")\r\nWrite-Verbose \"Installing ARR ($webpicmdexe $webpicmdargs)\" -Verbose\r\nStart-Process -FilePath $webpicmdexe -ArgumentList $webpicmdargs -Wait",
+          "TestScript": "if (Test-Path -LiteralPath \"$env:ProgramFiles\\IIS\\Application Request Routing\\requestRouter.dll\" -PathType Leaf)\r\n{Write-Verbose \"$env:ProgramFiles\\IIS\\Application Request Routing\\requestRouter.dll already exists.\" -Verbose\r\nreturn $true}\r\nreturn $false",
+          "Type": "Script",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "InstallARR",
+          "Args": {},
+          "Nodes": [],
+          "Requires": [
+            "[WindowsFeature]InstallIIS",
+            "[WindowsFeature]InstallASPNET45"
+          ],
+          "Description": null
+        },
+        {
+          "Credential": "vmadmin",
+          "GetScript": "return @{ Enabled = (Get-WebConfigurationProperty -Filter //proxy -Name enabled).Value}",
+          "SetScript": "$appcmdexe = \"$env:SystemRoot\\system32\\inetsrv\\appcmd\"\r\n$appcmdargs = 'set config -section:system.webServer/proxy /enabled:\"True\" /commit:apphost'\r\nWrite-Verbose \"Enabling ARR ($appcmdexe $appcmdargs)\" -Verbose\r\nStart-Process -FilePath $appcmdexe -ArgumentList $appcmdargs -Wait",
+          "TestScript": "if ((Get-WebConfigurationProperty -Filter //proxy -Name enabled).Value)\r\n{Write-Verbose \"ApplicationRequestRouting proxy already enabled\" -Verbose\r\nreturn $true}\r\nreturn $false",
+          "Type": "Script",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "EnableARR",
+          "Args": {},
+          "Nodes": [],
+          "Requires": [
+            "[WindowsFeature]InstallIIS",
+            "[WindowsFeature]InstallASPNET45"
+          ],
+          "Description": null
+        }
+      ],
+      "Args": {}
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
-  "Name": "New Invalid template",
-  "Description": "NEW NEW NEW Invalid template",
+  "Name": "Invalidtemplate,
+  "Description": "Invalid Template",
   "Version": "0.1.0",
   "Parameters": [
     {
@@ -8,6 +8,12 @@
       "Type": "String",
       "TypeHint": "AzureRegionName",
       "Description": "Name of Azure region."
+    },
+    {
+      "Name": "AffinityGroup",
+      "Type": "String",
+      "TypeHint": "AzureAffinityGroupName",
+      "Description": "Name of Azure affinity group."
     },
     {
       "Name": "CloudService",

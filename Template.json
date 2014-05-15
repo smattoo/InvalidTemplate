@@ -10,6 +10,12 @@
       "Description": "Name of Azure region."
     },
     {
+      "Name": "AffinityGroup",
+      "Type": "String",
+      "TypeHint": "AzureAffinityGroupName",
+      "Description": "Name of Azure affinity group."
+    },
+    {
       "Name": "CloudService",
       "Type": "String",
       "TypeHint": "AzureCloudServiceName",
